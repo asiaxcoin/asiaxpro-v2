@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>ASIAX BUY - Mobile UI</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0a0e1a; --card: rgba(20, 30, 50, 0.8); --glass: rgba(255,255,255,0.05);
+      --accent: #00d4ff; --success: #00ff88; --warning: #ffaa00; --error: #ff4757; --muted: #a0b0c0;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; font-family:'Inter',system-ui,sans-serif; }
+    body {
+      background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 50%, #0a0e1a 100%);
+      color: #e8f0ff; padding-bottom: 20px; overflow-x: hidden; /* FIXED - NO BOTTOM PADDING */
+    }
+    .app { max-width: 420px; margin: 0 auto; padding: 16px; }
+    
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; margin-bottom: 16px; backdrop-filter: blur(20px);
+      background: rgba(10,14,26,0.8); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .custom-logo { width: 120px; height: 48px; object-fit: contain; }
+    
+    .status {
+      padding: 12px; border-radius: 12px; text-align: center; font-size: 0.85rem; font-weight: 500;
+      background: var(--glass); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 16px;
+    }
+    .status.success { background: rgba(0,255,136,0.1); color: var(--success); border-color: var(--success); }
+    .status.error { background: rgba(255,71,87,0.1); color: var(--error); border-color: var(--error); }
+    
+    .card-app {
+      background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+      padding: 20px; margin-bottom: 16px; backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+    
+    .btn-modern {
+      border-radius: 16px; padding: 14px 20px; font-weight: 600; border: none; transition: all 0.3s;
+      min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #00ff88); color: #000; }
+    .btn-success { background: linear-gradient(135deg, var(--success), #00cc66); color: #000; }
+    .btn-modern:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,212,255,0.4); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    
+    /* ✅ NEW - HOME BUTTON STYLE */
+    .btn-home {
+      background: linear-gradient(135deg, var(--accent), #00ff88); color: #000;
+      border-radius: 12px; padding: 8px 16px; font-size: 0.85rem; font-weight: 600;
+      min-height: auto; min-width: 70px; white-space: nowrap;
+    }
+    
+    .form-control {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+      color: #fff; height: 48px; padding: 12px 16px; transition: all 0.3s;
+    }
+    .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.2); outline: none; }
+    .form-control::placeholder { color: var(--muted); }
+    
+    .price-card { text-align: center; font-size: 1.2rem; font-weight: 700; color: var(--accent); margin: 16px 0; }
+    
+    .stats-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat {
+
+
+
+flex: 1; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.02);
+      display: flex; flex-direction: column; gap: 6px; min-width: 120px; border: 1px solid rgba(255,255,255,0.05);
+      text-align: center;
+    }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+    .stat-value { font-size: 1rem; font-weight: 700; color: var(--accent); }
+    
+    @media (max-width: 360px) { .app { padding: 12px; } .card-app { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <img src="prologo.png" class="custom-logo" alt="ASIAX" />
+      </div>
+      <button id="connectBtn" class="btn btn-modern btn-primary">
+        <i class="fas fa-wallet"></i> <span id="connectLabel">Connect</span>
+      </button>
+    </div>
+
+    <div id="status" class="status">Ready — Connect Wallet</div>
+
+    <!-- ✅ FIXED - USER ADDRESS + HOME BUTTON SAME LINE -->
+    <div class="card-app">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div style="flex: 1;">
+          <div style="color: var(--muted); font-size: 0.8rem;">Address</div>
+          <div id="userAddress" style="font-weight:700;font-size:1.1rem">Not Connected</div>
+        </div>
+        <button id="backHome" class="btn-home" style="display:none;">
+          <i class="fas fa-home"></i> Home
+        </button>
+      </div>
+    </div>
+
+    <div class="card-app">
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">USDT Balance</div>
+          <div class="stat-value" id="usdtBalance">0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">AsiaX Balance</div>
+          <div class="stat-value" id="asiaxBalance">0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="priceInfo" class="price-card">Loading Price...</div>
+
+    <div class="card-app">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div><div style="color: var(--muted); font-size: 0.8rem;">Buy AsiaX</div><div style="font-weight:700">With USDT</div></div>
+        <i class="fas fa-exchange-alt" style="font-size:1.5rem;color:var(--accent)"></i>
+      </div>
+      <input id="usdtAmount" type="number" class="form-control" placeholder="USDT Amount (10)" min="1">
+      <button id="approveUSDT" class="btn btn-modern btn-success w-100 mt-3" disabled>𝐀𝐏𝐏𝐑𝐎𝐕𝐄 𝐔𝐒𝐃𝐓</button>
+      <button id="buyAsiaX" class="btn btn-modern btn-primary w-100 mt-3" disabled>𝐁𝐔𝐘 𝐀𝐒𝐈𝐀𝐗</button>
+    </div>
+  </div>
+
+  <script>
+    // 🚨 YE 3 LINES BADALO!
+    const CONTRACT_ADDR = '0xCA275a92B4845f3caD2995FaeC00733849C4e6D1';
+    const USDT_ADDR = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F';
+    const ASIAX_ADDR = '0xe36b5223d488322fac2ddda937e5ab226e83fbbd';
+
+    const abi = ["function buyAsiaX(uint256 usdtAmount) external", "function getHumanPrice() view returns(uint256)"];
+    const erc20 = ["function approve(address,uint256)", "function balanceOf(address) view returns(uint256)", "function decimals() view returns(uint8)"];
+
+    let wallet, contract, usdt, asiax;
+
+    function roundTo2Decimals(num) {
+      return parseFloat(num).toFixed(2);
+    }
+
+    document.getElementById('connectBtn').onclick = async () => {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.enable();
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          wallet = await signer.getAddress();
+          
+          document.getElementById('userAddress').innerHTML = wallet.substring(0,6) + '...' + wallet.substring(38);
+          document.getElementById('connectLabel').innerHTML = 'Connected';
+          document.getElementById('connectBtn').disabled = true;
+          
+          // ✅ SHOW HOME BUTTON AFTER CONNECT
+document.getElementById('backHome').style.display = 'block';
+          
+          contract = new ethers.Contract(CONTRACT_ADDR, abi, signer);
+          usdt = new ethers.Contract(USDT_ADDR, erc20, signer);
+          asiax = new ethers.Contract(ASIAX_ADDR, erc20, signer);
+          
+          await loadBalances();
+          await loadPrice();
+          
+          document.getElementById('approveUSDT').disabled = false;
+          document.getElementById('buyAsiaX').disabled = false;
+          
+          document.getElementById('status').innerHTML = '✅ Wallet Connected!';
+          document.getElementById('status').className = 'status success';
+        } catch(e) {
+          document.getElementById('status').innerHTML = '❌ ' + e.message;
+          document.getElementById('status').className = 'status error';
+        }
+      } else {
+        alert('MetaMask install karo!');
+      }
+    };
+
+    async function loadBalances() {
+      try {
+        const usdtBalRaw = await usdt.balanceOf(wallet);
+        const usdtBal = ethers.utils.formatUnits(usdtBalRaw, 6);
+        document.getElementById('usdtBalance').innerHTML = roundTo2Decimals(usdtBal);
+
+        const asiaxBalRaw = await asiax.balanceOf(wallet);
+        const asiaxBal = ethers.utils.formatUnits(asiaxBalRaw, 18);
+        document.getElementById('asiaxBalance').innerHTML = roundTo2Decimals(asiaxBal);
+      } catch(e) { console.log('Balance error:', e); }
+    }
+
+    async function loadPrice() {
+      try {
+        const price = await contract.getHumanPrice();
+        document.getElementById('priceInfo').innerHTML = '💰 1 USDT = ' + price + ' AsiaX';
+      } catch(e) {
+        document.getElementById('priceInfo').innerHTML = '❌ Price nahi set';
+      }
+    }
+
+    document.getElementById('approveUSDT').onclick = async () => {
+      document.getElementById('status').innerHTML = '⏳ Approve...';
+      document.getElementById('status').className = 'status';
+      try {
+        const amt = document.getElementById('usdtAmount').value;
+        const units = ethers.utils.parseUnits(amt, 6);
+        const tx = await usdt.approve(CONTRACT_ADDR, units);
+        await tx.wait();
+        document.getElementById('status').innerHTML = '✅ Approved!';
+        document.getElementById('status').className = 'status success';
+      } catch(e) {
+        document.getElementById('status').innerHTML = '❌ ' + e.message;
+        document.getElementById('status').className = 'status error';
+      }
+    };
+
+    document.getElementById('buyAsiaX').onclick = async () => {
+      document.getElementById('status').innerHTML = '⏳ Buying...';
+      document.getElementById('status').className = 'status';
+      try {
+        const amt = document.getElementById('usdtAmount').value;
+        const units = ethers.utils.parseUnits(amt, 6);
+        const tx = await contract.buyAsiaX(units);
+        await tx.wait();
+        document.getElementById('status').innerHTML = '🎉 Buy Success!';
+        document.getElementById('status').className = 'status success';
+        await loadBalances();
+        loadPrice();
+      } catch(e) {
+        document.getElementById('status').innerHTML = '❌ ' + e.message;
+        document.getElementById('status').className = 'status error';
+      }
+    };
+
+    // ✅ HOME BUTTON - SAME LINE MEIN!
+    document.getElementById('backHome').onclick = () => {
+      window.location.href = 'index.html'; 
+    };
+  </script>
+</body>
+</html>
